@@ -32,7 +32,7 @@ def get_args():
     return args
 
 
-def main(file_path):
+def certain_frame_flash(file_path, model = 'mp_hands' ):
     args = get_args()
 
     
@@ -55,15 +55,17 @@ def main(file_path):
     cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
     cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
 
-   
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=use_static_image_mode,
-        max_num_hands=2,
-        min_detection_confidence=min_detection_confidence,
-        min_tracking_confidence=min_tracking_confidence,
-    )
+    if model == "mp_hands":
+        mp_hands = mp.solutions.hands
+        hands = mp_hands.Hands(
+            static_image_mode=use_static_image_mode,
+            max_num_hands=2,
+            min_detection_confidence=min_detection_confidence,
+            min_tracking_confidence=min_tracking_confidence,
+        )
 
+    else:
+        hands = model
     keypoint_classifier = KeyPointClassifier()
 
     keypoint_classifier_labels = ['Open','Close','Pointer','OK']
@@ -74,9 +76,9 @@ def main(file_path):
     while True:
         
         
-        key = cv.waitKey(10)
-        if key == 27:  # ESC
-            break
+        # key = cv.waitKey(10)
+        # if key == 27:  # ESC
+        #     break
    
        
         ret, image = cap.read()
@@ -110,7 +112,7 @@ def main(file_path):
                 flash[handedness.classification[0].label] = keypoint_classifier_labels[hand_sign_id]
 
 
-            print(flash)
+            # print(flash)
             if flash['Left'] == 'Pointer' and flash['Right'] == 'OK':
                 print('FLASH!')
                 print(frames)
@@ -124,8 +126,12 @@ def main(file_path):
 
 
     cap.release()
-    
-    return frames if frames < total_frames else -1
+    print(frames)
+    if frames < total_frames:
+        return frames
+    else:
+        return -10
+    # return frames if frames < total_frames else -1
 
 
 
@@ -173,5 +179,5 @@ def pre_process_landmark(landmark_list):
 
 
 if __name__ == '__main__':
-    frame = main('video.mp4')
+    frame = certain_frame_flash('video.mp4')
     print(frame)
