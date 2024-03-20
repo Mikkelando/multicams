@@ -4,11 +4,12 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from flash import certain_frame_flash
+from flash import certain_frame_flash, get_args
 from mp_face_coords import calc_angles
+from video_plus_audio import create_video_without_audio, extract_audio, overlay_audio
 
 
-from moviepy.editor import VideoFileClip
+# from moviepy.editor import VideoFileClip
 
 face_mesh =mp.solutions.face_mesh.FaceMesh(
     min_detection_confidence=.5,
@@ -121,50 +122,7 @@ def create_timeline(lifeline, pose, data):
         
 
 
-def create_video_with_external_audio(frame_list, audio_file_path, start_frame, output_video_path):
-    # Открываем видео для чтения
-    video_clip = VideoFileClip(audio_file_path)
-    audio_clip = video_clip.audio
 
-    # Устанавливаем начальное время аудио
-    audio_clip = audio_clip.set_start(t=(start_frame / video_clip.fps))
-
-    # Открываем видео для записи
-    out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
-
-    for video_name, frame_number in frame_list:
-        # Открываем видео для чтения
-        cap = cv2.VideoCapture(video_name)
-        if not cap.isOpened():
-            print(f"Не удалось открыть видео: {video_name}")
-            continue
-
-        # Устанавливаем кадр на нужный номер
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-
-        # Считываем кадр
-        ret, frame = cap.read()
-        if not ret:
-            print(f"Не удалось прочитать кадр из видео: {video_name}")
-            continue
-
-        # Меняем размер кадра, если это необходимо
-        if frame.shape[:2] != (480, 640):
-            frame = cv2.resize(frame, (640, 480))
-
-        # Записываем кадр в выходное видео
-        out.write(frame)
-
-        # Освобождаем ресурсы
-        cap.release()
-
-    # Закрываем выходное видео
-    out.release()
-
-    # Склеиваем видео и аудио
-    video_clip = VideoFileClip(output_video_path)
-    video_clip = video_clip.set_audio(audio_clip)
-    video_clip.write_videofile(output_video_path, codec='libx264', audio_codec='aac')
 
 
 
@@ -173,12 +131,7 @@ def create_video_with_external_audio(frame_list, audio_file_path, start_frame, o
 
 
 '''
-
-create_video_with_external_audio(frame_list, audio_file_path, start_frame, output_video_path)
-
-'''
-
-def get_args():
+ def get_args():
     parser = argparse.ArgumentParser()
 
     # parser.add_argument("--file", type=str, default='video.mp4')
@@ -199,10 +152,11 @@ def get_args():
     args = parser.parse_args()
 
     return args
+'''
 
 
-if __name__ == "__main__":
 
+def main_process(list_of_videos, pose=[0,0,0]):
     args = get_args()
 
     
@@ -221,6 +175,38 @@ if __name__ == "__main__":
         min_tracking_confidence=min_tracking_confidence,
     )
 
+    
+    name_for_sound, data = find_flash(list_of_videos, model=hands)
+    lifeline = create_new_stream(data, name_for_sound)
+    timeline = create_timeline(lifeline, pose, data)
+    BIG = create_video_without_audio(timeline, "main_output_without_audio.mp4")  #TEST.mp4
+    extract_audio(name_for_sound, 'main_audio.mp3', start_frame=data[name_for_sound]['flash']-1)
+    overlay_audio('main_output_without_audio.mp4', "main_audio.mp3", "main_output.mp4")
+
+
+
+
+
+if __name__ == "__main__":
+
+    # args = get_args()
+
+    
+    # cap_width = args.width
+    # cap_height = args.height
+
+    # use_static_image_mode = args.use_static_image_mode
+    # min_detection_confidence = args.min_detection_confidence
+    # min_tracking_confidence = args.min_tracking_confidence
+
+    # mp_hands = mp.solutions.hands
+    # hands = mp_hands.Hands(
+    #     static_image_mode=use_static_image_mode,
+    #     max_num_hands=2,
+    #     min_detection_confidence=min_detection_confidence,
+    #     min_tracking_confidence=min_tracking_confidence,
+    # )
+
 
     vid1 = "vid1.mp4"
     vid2 = "vid2.mp4"
@@ -228,35 +214,36 @@ if __name__ == "__main__":
 
     list_of_videos = [vid1, vid2, vid3]
 
-    name_for_sound, data = find_flash(list_of_videos, model=hands)
+    # name_for_sound, data = find_flash(list_of_videos, model=hands)
 
-    print('____________name_for_sound_____________')
-    print(name_for_sound)
+    # print('____________name_for_sound_____________')
+    # print(name_for_sound)
 
-    print("___________________________________________")
-    print(data)
-    for vid in data:
-        print('flash', data[vid]['flash'])
-        print('total_frames', data[vid]['subdata'][0])
+    # print("___________________________________________")
+    # print(data)
+    # for vid in data:
+    #     print('flash', data[vid]['flash'])
+    #     print('total_frames', data[vid]['subdata'][0])
 
     
-    lifeline = create_new_stream(data, name_for_sound)
+    # lifeline = create_new_stream(data, name_for_sound)
 
 
-    print("_"*20 + 'LIFE LINE' + "_"*20)
-    print(lifeline[:10])
-    print()
-    print()
-    print(lifeline[-1:-10:-1])
+    # print("_"*20 + 'LIFE LINE' + "_"*20)
+    # print(lifeline[:10])
+    # print()
+    # print()
+    # print(lifeline[-1:-10:-1])
 
-    timeline = create_timeline(lifeline, [0,0,0], data)
+    # timeline = create_timeline(lifeline, [0,0,0], data)
 
 
-    # frame_list = [("video1.mp4", 100), ("video2.mp4", 200), ("video3.mp4", 300)]
-    # audio_file_path = "audio.mp3" 
-    # start_frame = 500 
-    # output_video_path = "output_video.mp4"
-    print("="*20 + 'TIMELINE' + "="*20)
+    # # frame_list = [("video1.mp4", 100), ("video2.mp4", 200), ("video3.mp4", 300)]
+    # # audio_file_path = "audio.mp3" 
+    # # start_frame = 500 
+    # # output_video_path = "output_video.mp4"
+    # print("="*20 + 'TIMELINE' + "="*20)
     
-    time.sleep(5)
-    print(timeline)
+    # time.sleep(5)
+    # print(timeline)
+    main_process(list_of_videos, pose=[0,0,0])
