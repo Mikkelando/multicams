@@ -7,7 +7,7 @@ import numpy as np
 from flash import certain_frame_flash, get_args
 from mp_face_coords import calc_angles
 from video_plus_audio import create_video_without_audio, extract_audio, overlay_audio
-
+from scipy.spatial.transform import Rotation
 
 # from moviepy.editor import VideoFileClip
 
@@ -70,9 +70,23 @@ def create_new_stream(data, name_for_sound):
     print(len(lifeline))
     return lifeline
 
+
+
+# def euler_to_unit_vector(z, x, y):
+#     rotation = Rotation.from_euler('zyx', [y, x, z], degrees=True)
+#     return rotation.apply([1, 0, 0])
+
+# 
+# def angular_distance(vector1, vector2):
+#     dot_product = np.dot(vector1, vector2)
+#     angle = np.arccos(np.clip(dot_product, -1.0, 1.0))
+#     return angle
     
 def metric(pose, coord):
-    return np.linalg.norm(np.asarray(pose) -np.asarray(coord))
+    # return np.linalg.norm(np.asarray(pose) -np.asarray(coord))
+    return np.linalg.norm(np.asarray(pose) -np.asarray(coord), ord=np.inf)
+
+    
     
 
 def create_timeline(lifeline, pose, data):
